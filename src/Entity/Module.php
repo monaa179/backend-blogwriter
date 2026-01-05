@@ -8,6 +8,8 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ModuleRepository::class)]
+#[ORM\Table(name: 'module')]
+#[ORM\HasLifecycleCallbacks]
 class Module
 {
     #[ORM\Id]
@@ -36,6 +38,13 @@ class Module
     public function __construct()
     {
         $this->articles = new ArrayCollection();
+        $this->active = true;
+    }
+
+    #[ORM\PrePersist]
+    public function onPrePersist(): void
+    {
+        $this->createdAt = new \DateTimeImmutable();
     }
 
     public function getId(): ?int

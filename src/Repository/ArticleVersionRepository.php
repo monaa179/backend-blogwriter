@@ -16,28 +16,19 @@ class ArticleVersionRepository extends ServiceEntityRepository
         parent::__construct($registry, ArticleVersion::class);
     }
 
-    //    /**
-    //     * @return ArticleVersion[] Returns an array of ArticleVersion objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('a')
-    //            ->andWhere('a.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('a.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    /**
+     * Get the maximum version number for an article
+     */
+    public function getMaxVersionNumber(int $articleId): int
+    {
+        $result = $this->createQueryBuilder('v')
+            ->select('MAX(v.versionNumber)')
+            ->where('v.article = :articleId')
+            ->setParameter('articleId', $articleId)
+            ->getQuery()
+            ->getSingleScalarResult();
 
-    //    public function findOneBySomeField($value): ?ArticleVersion
-    //    {
-    //        return $this->createQueryBuilder('a')
-    //            ->andWhere('a.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        return $result ? (int) $result : 0;
+    }
 }
+

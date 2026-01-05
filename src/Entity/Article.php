@@ -9,8 +9,16 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ArticleRepository::class)]
+#[ORM\HasLifecycleCallbacks]
+#[ORM\Table(name: 'article')]
 class Article
 {
+    public const STATUS_PROPOSED = 'proposed';
+    public const STATUS_WRITING = 'writing';
+    public const STATUS_WRITTEN = 'written';
+    public const STATUS_VALIDATED = 'validated';
+    public const STATUS_PUBLISHED = 'published';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -25,10 +33,10 @@ class Article
     #[ORM\Column(type: Types::TEXT)]
     private ?string $originalDescription = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     private ?string $suggestedTitle = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $suggestedDescription = null;
 
     #[ORM\Column(nullable: true)]
@@ -47,18 +55,34 @@ class Article
      * @var Collection<int, Module>
      */
     #[ORM\ManyToMany(targetEntity: Module::class, inversedBy: 'articles')]
+    #[ORM\JoinTable(name: 'article_module')]
     private Collection $modules;
 
     /**
      * @var Collection<int, ArticleVersion>
      */
     #[ORM\OneToMany(targetEntity: ArticleVersion::class, mappedBy: 'article', orphanRemoval: true, cascade: ['persist', 'remove'])]
+    #[ORM\OrderBy(['versionNumber' => 'DESC'])]
     private Collection $articleVersions;
 
     public function __construct()
     {
         $this->modules = new ArrayCollection();
         $this->articleVersions = new ArrayCollection();
+        $this->status = self::STATUS_PROPOSED;
+    }
+
+    #[ORM\PrePersist]
+    public function onPrePersist(): void
+    {
+        $this->createdAt = new \DateTimeImmutable();
+        $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    #[ORM\PreUpdate]
+    public function onPreUpdate(): void
+    {
+        $this->updatedAt = new \DateTimeImmutable();
     }
 
     public function getId(): ?int
@@ -107,7 +131,7 @@ class Article
         return $this->suggestedTitle;
     }
 
-    public function setSuggestedTitle(string $suggestedTitle): static
+    public function setSuggestedTitle(?string $suggestedTitle): static
     {
         $this->suggestedTitle = $suggestedTitle;
 
@@ -119,7 +143,7 @@ class Article
         return $this->suggestedDescription;
     }
 
-    public function setSuggestedDescription(string $suggestedDescription): static
+    public function setSuggestedDescription(?string $suggestedDescription): static
     {
         $this->suggestedDescription = $suggestedDescription;
 
@@ -198,6 +222,13 @@ class Article
         return $this;
     }
 
+    public function clearModules(): static
+    {
+        $this->modules->clear();
+
+        return $this;
+    }
+
     /**
      * @return Collection<int, ArticleVersion>
      */
@@ -226,5 +257,26 @@ class Article
         }
 
         return $this;
+    }
+
+    /**
+     * Get the latest version of this article (highest version number)
+     */
+    public function getLatestVersion(): ?ArticleVersion
+    {
+        if ($this->articleVersions->isEmpty()) {
+            return null;
+        }
+
+        // Collection is already ordered by versionNumber DESC
+        return $this->articleVersions->first() ?: null;
+    }
+
+    /**
+     * Check if article has at least one version
+     */
+    public function hasVersion(): bool
+    {
+        return !$this->articleVersions->isEmpty();
     }
 }

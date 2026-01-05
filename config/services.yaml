@@ -7,6 +7,8 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    make_webhook_url: '%env(MAKE_WEBHOOK_URL)%'
+    make_webhook_secret: '%env(MAKE_WEBHOOK_SECRET)%'
 
 services:
     # default configuration for services in *this* file
@@ -19,5 +21,20 @@ services:
     App\:
         resource: '../src/'
 
-    # add more service definitions when explicit configuration is needed
-    # please note that last definitions always *replace* previous ones
+    # MakeWebhookClient service with webhook URL binding
+    App\Service\MakeWebhookClient:
+        arguments:
+            $webhookUrl: '%make_webhook_url%'
+
+    # ArticleController with webhook secret binding
+    App\Controller\Api\ArticleController:
+        arguments:
+            $webhookSecret: '%make_webhook_secret%'
+
+    # ApiExceptionSubscriber with environment binding
+    App\EventSubscriber\ApiExceptionSubscriber:
+        arguments:
+            $environment: '%kernel.environment%'
+
+
+

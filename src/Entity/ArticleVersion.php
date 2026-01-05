@@ -7,6 +7,9 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ArticleVersionRepository::class)]
+#[ORM\Table(name: 'article_version')]
+#[ORM\UniqueConstraint(name: 'unique_article_version', columns: ['article_id', 'version_number'])]
+#[ORM\HasLifecycleCallbacks]
 class ArticleVersion
 {
     #[ORM\Id]
@@ -15,7 +18,7 @@ class ArticleVersion
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'articleVersions')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Article $article = null;
 
     #[ORM\Column(type: Types::TEXT)]
@@ -26,6 +29,12 @@ class ArticleVersion
 
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
+
+    #[ORM\PrePersist]
+    public function onPrePersist(): void
+    {
+        $this->createdAt = new \DateTimeImmutable();
+    }
 
     public function getId(): ?int
     {
